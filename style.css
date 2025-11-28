@@ -1,0 +1,497 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 750px; /* Increased width for more space */
+    margin: 50px auto;
+    background: white;
+    padding: 20px;
+    padding-bottom: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 20px;
+}
+
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center; /* Align items vertically */
+}
+
+.timer-label {
+    font-size: 0.9em;
+    color: #333;
+}
+
+#groupName,
+#taskInput {
+    flex: 1 1 30%; /* Adjusted flex basis */
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#taskPriority,
+#taskDate,
+#taskTimer { /* Style for new timer input and existing selects/date */
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    flex: 1 1 10%; /* Give them some space */
+    min-width: 90px; /* Minimum width */
+}
+
+button {
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.action-buttons {
+    margin-bottom: 20px;
+}
+.action-buttons button {
+    background-color: #dc3545;
+}
+.action-buttons button:hover {
+    background-color: #c82333;
+}
+.group {
+    margin-bottom: 30px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.group h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+li {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px; /* Gap between taskDetails and taskActions */
+    background-color: #f9f9f9; /* Default background for li */
+    border-left: 5px solid transparent; /* For priority indication */
+}
+
+li.completed .task-details .task-text {
+    text-decoration: line-through;
+}
+li.completed .task-details {
+    color: gray;
+}
+
+.task-details {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Space between task text and info */
+}
+
+.task-text {
+    font-weight: 500; /* Slightly bolder */
+    font-size: 1.05em;
+}
+
+.task-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Gap between timer (if present) and buttons */
+    flex-shrink: 0; /* Prevent actions from shrinking too much */
+}
+
+.timer-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.timer-display {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    padding: 2px 5px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    min-width: 45px; /* Ensure space for MM:SS */
+    text-align: center;
+    color: #333;
+}
+
+.timer-expired {
+    color: #dc3545 !important; /* Ensure high visibility */
+    font-weight: bold;
+}
+
+.start-timer-btn,
+.task-buttons button {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 5px 8px;
+    font-size: 1em; /* Relative to parent */
+    color: #333;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.start-timer-btn:hover,
+.task-buttons button:hover {
+    background-color: #e9ecef;
+    border-color: #bbb;
+}
+
+.start-timer-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Priority specific styling */
+.priority-low { border-left-color: #28a745; background-color: #d4edda;}
+.priority-medium { border-left-color: #ffc107; background-color: #fff3cd;}
+.priority-high { border-left-color: #dc3545; background-color: #f8d7da;}
+
+/* Overdue styling */
+.overdue { 
+    outline: 2px solid #dc3545; 
+    background-image: linear-gradient(90deg, rgba(255,235,59,0.2), rgba(255,235,59,0));
+}
+
+.task-info {
+    font-size: 0.85em;
+    color: #555;
+}
+
+.timer-finished-highlight {
+    animation: pulseRed 1s 2;
+}
+
+@keyframes pulseRed {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } /* dc3545 */
+    70% { box-shadow: 0 0 5px 8px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+    .input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #groupName,
+    #taskInput,
+    #taskPriority,
+    #taskDate,
+    #taskTimer,
+    .timer-label,
+    .input-group button {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+    .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 750px; /* Increased width for more space */
+    margin: 50px auto;
+    background: white;
+    padding: 20px;
+    padding-bottom: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 20px;
+}
+
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center; /* Align items vertically */
+}
+
+.timer-label {
+    font-size: 0.9em;
+    color: #333;
+}
+
+#groupName,
+#taskInput {
+    flex: 1 1 30%; /* Adjusted flex basis */
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#taskPriority,
+#taskDate,
+#taskTimer { /* Style for new timer input and existing selects/date */
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    flex: 1 1 10%; /* Give them some space */
+    min-width: 90px; /* Minimum width */
+}
+
+button {
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.action-buttons {
+    margin-bottom: 20px;
+}
+.action-buttons button {
+    background-color: #dc3545;
+}
+.action-buttons button:hover {
+    background-color: #c82333;
+}
+.group {
+    margin-bottom: 30px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.group h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+li {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px; /* Gap between taskDetails and taskActions */
+    background-color: #f9f9f9; /* Default background for li */
+    border-left: 5px solid transparent; /* For priority indication */
+}
+
+li.completed .task-details .task-text {
+    text-decoration: line-through;
+}
+li.completed .task-details {
+    color: gray;
+}
+
+.task-details {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Space between task text and info */
+}
+
+.task-text {
+    font-weight: 500; /* Slightly bolder */
+    font-size: 1.05em;
+}
+
+.task-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Gap between timer (if present) and buttons */
+    flex-shrink: 0; /* Prevent actions from shrinking too much */
+}
+
+.timer-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.timer-display {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    padding: 2px 5px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    min-width: 45px; /* Ensure space for MM:SS */
+    text-align: center;
+    color: #333;
+}
+
+.timer-expired {
+    color: #dc3545 !important; /* Ensure high visibility */
+    font-weight: bold;
+}
+
+.start-timer-btn,
+.task-buttons button {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 5px 8px;
+    font-size: 1em; /* Relative to parent */
+    color: #333;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.start-timer-btn:hover,
+.task-buttons button:hover {
+    background-color: #e9ecef;
+    border-color: #bbb;
+}
+
+.start-timer-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Priority specific styling */
+.priority-low { border-left-color: #28a745; background-color: #d4edda;}
+.priority-medium { border-left-color: #ffc107; background-color: #fff3cd;}
+.priority-high { border-left-color: #dc3545; background-color: #f8d7da;}
+
+/* Overdue styling */
+.overdue { 
+    outline: 2px solid #dc3545; 
+    background-image: linear-gradient(90deg, rgba(255,235,59,0.2), rgba(255,235,59,0));
+}
+
+.task-info {
+    font-size: 0.85em;
+    color: #555;
+}
+
+.timer-finished-highlight {
+    animation: pulseRed 1s 2;
+}
+
+@keyframes pulseRed {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } /* dc3545 */
+    70% { box-shadow: 0 0 5px 8px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+    .input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    #groupName,
+    #taskInput,
+    #taskPriority,
+    #taskDate,
+    #taskTimer,
+    .timer-label,
+    .input-group button {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+    .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+/* style.css */
+li.overdue {
+    /* مثال لتنسيق المهام المتأخرة */
+    background-color: #ffcccc;
+    /* خلفية حمراء فاتحة */
+    border-right: 5px solid #dc3545;
+    /* خط أحمر إضافي */
+    box-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
+}
