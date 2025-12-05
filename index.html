@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>To-Do List with Groups</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 
@@ -39,6 +40,13 @@
     <div class="main-controls">
 
       <div class="filters">
+        <label for="viewOption">View:</label>
+        <select id="viewOption">
+          <option value="groups">Groups</option>
+          <option value="weeks">Weekly</option>
+          <option value="months">Monthly</option>
+        </select>
+
         <label for="sortOption">Sort by:</label>
         <select id="sortOption">
           <option value="none">None</option>

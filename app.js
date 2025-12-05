@@ -2,33 +2,87 @@
 let tasks = [];
 
 // Utilities: storage
-function saveTasks() {
+// Utilities: storage
+async function saveTasks() {
   try {
-    localStorage.setItem("tasksData", JSON.stringify(tasks));
+    await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(tasks)
+    });
   } catch (e) {
     console.error("Failed to save tasks:", e);
   }
 }
 
-function loadTasks() {
+async function loadTasks() {
   try {
-    const raw = localStorage.getItem("tasksData");
-    tasks = raw ? JSON.parse(raw) : [];
+    const response = await fetch('/api/tasks');
+    if (response.ok) {
+      tasks = await response.json();
+    } else {
+      tasks = [];
+    }
   } catch (e) {
-    console.error("Failed to parse tasks from storage, resetting.", e);
+    console.error("Failed to parse tasks from server, resetting.", e);
     tasks = [];
   }
 
-  // Render tasks
-  const groupsContainer = document.getElementById("groupsContainer");
-  groupsContainer.innerHTML = "";
+  // Render tasks based on current view
+  renderAllTasks();
+}
 
-  tasks.forEach((task) => {
-    renderTask(task);
-  });
+let currentView = 'groups'; // 'groups', 'weeks', 'months'
 
-  // Apply any selected sort on load
-  applySorting();
+function getWeekNumber(d) {
+    // ISO week date
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+    return { year: d.getUTCFullYear(), week: weekNo };
+}
+
+function getGroupNameForTask(task) {
+    if (currentView === 'groups') {
+        return task.groupName;
+    } else if (currentView === 'weeks') {
+        if (!task.date) return "No Date";
+        const date = new Date(task.date);
+        const { year, week } = getWeekNumber(date);
+        return `Week ${week}, ${year}`;
+    } else if (currentView === 'months') {
+        if (!task.date) return "No Date";
+        const date = new Date(task.date);
+        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    }
+    return 'Unknown';
+}
+
+function renderAllTasks() {
+    const groupsContainer = document.getElementById("groupsContainer");
+    groupsContainer.innerHTML = "";
+    
+    // Sort tasks to ensure groups render nicely (optional, but helps order groups)
+    // We can group them in memory first to sort the groups themselves (e.g. Week 1, Week 2...)
+    // For now, simpler approach: just render in order of tasks, or maybe sort tasks by date if view is date-based
+    
+    let tasksToRender = [...tasks];
+    
+    // If viewing by date, let's pre-sort by date so groups appear in order
+    if (currentView !== 'groups') {
+        tasksToRender.sort((a, b) => {
+             if (!a.date) return 1;
+             if (!b.date) return -1;
+             return a.date.localeCompare(b.date);
+        });
+    }
+
+    tasksToRender.forEach(task => {
+        renderTask(task);
+    });
+
+    applySorting();
 }
 
 function generateId() {
@@ -84,12 +138,14 @@ function minutesAndSeconds(totalSeconds) {
 }
 
 function renderTask(task) {
-  const taskList = createOrGetGroup(task.groupName);
+  const dynamicGroupName = getGroupNameForTask(task);
+  const taskList = createOrGetGroup(dynamicGroupName);
 
   // li container
   const li = document.createElement("li");
   li.dataset.taskId = task.id;
   li.classList.add(`priority-${task.priority}`);
+  li.classList.add('slide-in'); // Animation class
   if (task.completed) li.classList.add("completed");
 
   const taskDetailsDiv = document.createElement("div");
@@ -204,7 +260,8 @@ function renderTask(task) {
 
   // Delete button
   const deleteBtn = document.createElement("button");
-  deleteBtn.textContent = "🗑";
+  deleteBtn.innerHTML = '<i class="fas fa-trash"></i> 🗑'; // Use icon if available, or just text
+  deleteBtn.textContent = '🗑';
   deleteBtn.title = "Delete Task";
   deleteBtn.onclick = function () {
     // Clear any active timer for this task
@@ -214,26 +271,33 @@ function renderTask(task) {
       delete timerDisplay.dataset.intervalId;
     }
 
-    // Remove from DOM
-    const parentList = li.parentElement;
-    if (parentList) parentList.removeChild(li);
+    // Add exit animation class
+    li.classList.remove('slide-in');
+    li.classList.add('slide-out');
 
-    // Remove from state
-    tasks = tasks.filter((t) => t.id !== task.id);
-    saveTasks();
+    // Wait for animation to finish before removing
+    li.addEventListener('animationend', () => {
+        // Remove from DOM
+        const parentList = li.parentElement;
+        if (parentList) parentList.removeChild(li);
 
-    // If taskList is empty, remove the group
-    if (parentList && parentList.children.length === 0) {
-      const groupContainer = parentList.parentNode;
-      const container = document.getElementById("groupsContainer");
-      if (
-        groupContainer &&
-        groupContainer.classList.contains("group") &&
-        groupContainer.parentNode === container
-      ) {
-        groupContainer.parentNode.removeChild(groupContainer);
-      }
-    }
+        // Remove from state
+        tasks = tasks.filter((t) => t.id !== task.id);
+        saveTasks();
+
+        // If taskList is empty, remove the group
+        if (parentList && parentList.children.length === 0) {
+            const groupContainer = parentList.parentNode;
+            const container = document.getElementById("groupsContainer");
+            if (
+                groupContainer &&
+                groupContainer.classList.contains("group") &&
+                groupContainer.parentNode === container
+            ) {
+                groupContainer.parentNode.removeChild(groupContainer);
+            }
+        }
+    });
   };
 
   // Group action buttons (Complete & Delete)
@@ -292,6 +356,11 @@ function addTask() {
   document.getElementById("taskPriority").value = "low";
   document.getElementById("taskDate").value = "";
   document.getElementById("taskTimer").value = "";
+  
+  // Re-render all if view is not 'groups', because a new task might belong to a specific week
+  if (currentView !== 'groups') {
+      renderAllTasks();
+  }
 }
 
 function deleteAllTasks() {
@@ -414,5 +483,14 @@ function capitalizeFirstLetter(string) {
   if (sortSelect) {
     sortSelect.addEventListener('change', applySorting);
   }
+
+  const viewSelect = document.getElementById('viewOption');
+  if (viewSelect) {
+      viewSelect.addEventListener('change', (e) => {
+          currentView = e.target.value;
+          renderAllTasks();
+      });
+  }
+
   loadTasks();
 })();
