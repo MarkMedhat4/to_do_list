@@ -4,61 +4,96 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="A powerful to-do list application with task groups, priorities, timers, and more." />
   <title>To-Do List with Groups</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
   <main class="container">
-    <h1>📝 To-Do List with Groups</h1>
+    <div class="header">
+      <h1>📝 To-Do List with Groups</h1>
+      <p class="subtitle">Stay organized and productive</p>
+    </div>
 
-    <form id="task-form" class="input-group">
+    <form id="task-form" class="input-group" novalidate>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="groupName">Group Name</label>
+          <input type="text" id="groupName" placeholder="e.g., Work, Personal..." required />
+          <span class="error-message" id="groupName-error"></span>
+        </div>
 
-      <label for="groupName" class="visually-hidden">Group Name</label>
-      <input type="text" id="groupName" placeholder="Enter group name..." />
+        <div class="form-group">
+          <label for="taskInput">Task Description</label>
+          <input type="text" id="taskInput" placeholder="Enter a new task..." required />
+          <span class="error-message" id="taskInput-error"></span>
+        </div>
+      </div>
 
-      <label for="taskInput" class="visually-hidden">Task Description</label>
-      <input type="text" id="taskInput" placeholder="Enter a new task..." />
+      <div class="form-row">
+        <div class="form-group">
+          <label for="taskPriority">Priority</label>
+          <select id="taskPriority" aria-label="Task Priority">
+            <option value="low">Low Priority</option>
+            <option value="medium" selected>Medium Priority</option>
+            <option value="high">High Priority</option>
+          </select>
+        </div>
 
-      <select id="taskPriority" aria-label="Task Priority">
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
-      </select>
+        <div class="form-group">
+          <label for="taskDate">Due Date</label>
+          <input type="date" id="taskDate" />
+        </div>
 
-      <label for="taskDate" class="visually-hidden">Due Date</label>
-      <input type="date" id="taskDate" />
+        <div class="form-group">
+          <label for="taskTimer">Timer (minutes)</label>
+          <input type="number" id="taskTimer" min="1" max="999" placeholder="Optional" />
+        </div>
+      </div>
 
-      <label for="taskTimer" class="timer-label">Timer (min)</label>
-      <input type="number" id="taskTimer" min="1" aria-label="Task Timer in Minutes" />
-
-      <button type="submit">Add Task</button>
+      <button type="submit" class="btn-primary">+ Add Task</button>
+      <span class="form-feedback" id="form-feedback"></span>
     </form>
 
     <div class="main-controls">
-
       <div class="filters">
-        <label for="viewOption">View:</label>
-        <select id="viewOption">
-          <option value="groups">Groups</option>
-          <option value="weeks">Weekly</option>
-          <option value="months">Monthly</option>
-        </select>
+        <div class="filter-group">
+          <label for="viewOption">View:</label>
+          <select id="viewOption">
+            <option value="groups">Groups</option>
+            <option value="weeks">Weekly</option>
+            <option value="months">Monthly</option>
+          </select>
+        </div>
 
-        <label for="sortOption">Sort by:</label>
-        <select id="sortOption">
-          <option value="none">None</option>
-          <option value="priority">Priority (High → Low)</option>
-          <option value="date">Due date (Earliest First)</option>
-        </select>
+        <div class="filter-group">
+          <label for="sortOption">Sort by:</label>
+          <select id="sortOption">
+            <option value="none">None</option>
+            <option value="priority">Priority (High → Low)</option>
+            <option value="date">Due date (Earliest First)</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="searchInput">Search:</label>
+          <input type="text" id="searchInput" placeholder="Search tasks..." />
+        </div>
       </div>
 
       <div class="action-buttons">
-        <button onclick="deleteAllTasks()">Delete All Tasks</button>
+        <button id="deleteAllBtn" class="btn-danger">🗑 Clear All</button>
       </div>
+    </div>
 
+    <div id="emptyState" class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <h2>No tasks yet</h2>
+      <p>Create your first task to get started!</p>
     </div>
 
     <div id="groupsContainer"></div>

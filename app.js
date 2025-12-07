@@ -2,29 +2,21 @@
 let tasks = [];
 
 // Utilities: storage
-// Utilities: storage
 async function saveTasks() {
   try {
-    await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(tasks)
-    });
+    localStorage.setItem('tasks', JSON.stringify(tasks));
   } catch (e) {
     console.error("Failed to save tasks:", e);
+    showFormFeedback("Failed to save tasks", "error");
   }
 }
 
 async function loadTasks() {
   try {
-    const response = await fetch('/api/tasks');
-    if (response.ok) {
-      tasks = await response.json();
-    } else {
-      tasks = [];
-    }
+    const stored = localStorage.getItem('tasks');
+    tasks = stored ? JSON.parse(stored) : [];
   } catch (e) {
-    console.error("Failed to parse tasks from server, resetting.", e);
+    console.error("Failed to parse tasks from storage, resetting.", e);
     tasks = [];
   }
 
@@ -61,15 +53,30 @@ function getGroupNameForTask(task) {
 
 function renderAllTasks() {
     const groupsContainer = document.getElementById("groupsContainer");
+    const emptyState = document.getElementById("emptyState");
+    
     groupsContainer.innerHTML = "";
     
-    // Sort tasks to ensure groups render nicely (optional, but helps order groups)
-    // We can group them in memory first to sort the groups themselves (e.g. Week 1, Week 2...)
-    // For now, simpler approach: just render in order of tasks, or maybe sort tasks by date if view is date-based
+    if (tasks.length === 0) {
+        emptyState.classList.add("show");
+        return;
+    }
+    
+    emptyState.classList.remove("show");
     
     let tasksToRender = [...tasks];
     
-    // If viewing by date, let's pre-sort by date so groups appear in order
+    // Apply search filter if any
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && searchInput.value.trim()) {
+        const searchTerm = searchInput.value.toLowerCase();
+        tasksToRender = tasksToRender.filter(task =>
+            task.text.toLowerCase().includes(searchTerm) ||
+            task.groupName.toLowerCase().includes(searchTerm)
+        );
+    }
+
+    // If viewing by date, pre-sort by date so groups appear in order
     if (currentView !== 'groups') {
         tasksToRender.sort((a, b) => {
              if (!a.date) return 1;
@@ -329,7 +336,18 @@ function addTask() {
   const taskDate = document.getElementById("taskDate").value;
   const taskTimerMinutesInput = document.getElementById("taskTimer").value;
 
-  if (!groupName || !taskText) return;
+  // Clear error messages
+  clearValidationErrors();
+
+  // Validate inputs
+  if (!groupName) {
+    showValidationError("groupName", "Group name is required");
+    return;
+  }
+  if (!taskText) {
+    showValidationError("taskInput", "Task description is required");
+    return;
+  }
 
   const taskTimerMinutes = parseInt(taskTimerMinutesInput, 10);
 
@@ -350,10 +368,13 @@ function addTask() {
   renderTask(task);
   applySorting();
 
+  // Show success message
+  showFormFeedback("✓ Task added successfully!", "success");
+
   // Clear inputs
   document.getElementById("groupName").value = "";
   document.getElementById("taskInput").value = "";
-  document.getElementById("taskPriority").value = "low";
+  document.getElementById("taskPriority").value = "medium";
   document.getElementById("taskDate").value = "";
   document.getElementById("taskTimer").value = "";
   
@@ -476,8 +497,44 @@ function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+// Form validation helpers
+function clearValidationErrors() {
+  document.querySelectorAll('.error-message').forEach(el => {
+    el.classList.remove('show');
+    el.textContent = '';
+  });
+}
+
+function showValidationError(fieldId, message) {
+  const errorEl = document.getElementById(`${fieldId}-error`);
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.classList.add('show');
+  }
+}
+
+function showFormFeedback(message, type = 'success') {
+  const feedbackEl = document.getElementById('form-feedback');
+  if (feedbackEl) {
+    feedbackEl.textContent = message;
+    feedbackEl.className = `form-feedback show ${type}`;
+    setTimeout(() => {
+      feedbackEl.classList.remove('show');
+    }, 3000);
+  }
+}
+
 // Init on load
 (function init() {
+  // Form submission
+  const form = document.getElementById('task-form');
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      addTask();
+    });
+  }
+
   // If a sort dropdown exists, wire it
   const sortSelect = document.getElementById('sortOption');
   if (sortSelect) {
@@ -486,10 +543,28 @@ function capitalizeFirstLetter(string) {
 
   const viewSelect = document.getElementById('viewOption');
   if (viewSelect) {
-      viewSelect.addEventListener('change', (e) => {
-          currentView = e.target.value;
-          renderAllTasks();
-      });
+    viewSelect.addEventListener('change', (e) => {
+      currentView = e.target.value;
+      renderAllTasks();
+    });
+  }
+
+  // Search input
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      renderAllTasks();
+    });
+  }
+
+  // Delete all button
+  const deleteAllBtn = document.getElementById('deleteAllBtn');
+  if (deleteAllBtn) {
+    deleteAllBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to delete all tasks? This cannot be undone.')) {
+        deleteAllTasks();
+      }
+    });
   }
 
   loadTasks();
