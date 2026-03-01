@@ -1,105 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description"
-    content="A powerful to-do list application with task groups, priorities, timers, and more." />
-  <title>To-Do List with Groups</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="description" content="TaskFlow — A powerful to-do list with groups, priorities, timers, and more." />
+  <title>TaskFlow — To-Do List</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-  <main class="container">
-    <div class="header">
-      <h1>📝 To-Do List with Groups</h1>
-      <p class="subtitle">Stay organized and productive</p>
-    </div>
+  <div class="app-shell">
 
-    <form id="task-form" class="input-group" novalidate>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="groupName">Group Name</label>
-          <input type="text" id="groupName" placeholder="e.g., Work, Personal..." required />
-          <span class="error-message" id="groupName-error"></span>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">TF</div>
+        <span class="logo-text">TaskFlow</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <p class="nav-label">View</p>
+        <button class="nav-btn active" data-view="groups">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Groups
+        </button>
+        <button class="nav-btn" data-view="weeks">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Weekly
+        </button>
+        <button class="nav-btn" data-view="months">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Monthly
+        </button>
+      </nav>
+
+      <div class="sidebar-stats" id="sidebarStats">
+        <p class="nav-label">Overview</p>
+        <div class="stat-item">
+          <span class="stat-value" id="statTotal">0</span>
+          <span class="stat-label">Total</span>
         </div>
-
-        <div class="form-group">
-          <label for="taskInput">Task Description</label>
-          <input type="text" id="taskInput" placeholder="Enter a new task..." required />
-          <span class="error-message" id="taskInput-error"></span>
+        <div class="stat-item">
+          <span class="stat-value" id="statDone">0</span>
+          <span class="stat-label">Done</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value overdue-stat" id="statOverdue">0</span>
+          <span class="stat-label">Overdue</span>
         </div>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="taskPriority">Priority</label>
-          <select id="taskPriority" aria-label="Task Priority">
-            <option value="low">Low Priority</option>
-            <option value="medium" selected>Medium Priority</option>
-            <option value="high">High Priority</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="taskDate">Due Date</label>
-          <input type="date" id="taskDate" />
-        </div>
-
-        <div class="form-group">
-          <label for="taskTimer">Timer (minutes)</label>
-          <input type="number" id="taskTimer" min="1" max="999" placeholder="Optional" />
-        </div>
+      <div class="sidebar-bottom">
+        <button id="deleteAllBtn" class="sidebar-danger-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Clear All Tasks
+        </button>
       </div>
+    </aside>
 
-      <button type="submit" class="btn-primary">+ Add Task</button>
-      <span class="form-feedback" id="form-feedback"></span>
-    </form>
+    <!-- Main content -->
+    <main class="main-area">
 
-    <div class="main-controls">
-      <div class="filters">
-        <div class="filter-group">
-          <label for="viewOption">View:</label>
-          <select id="viewOption">
-            <option value="groups">Groups</option>
-            <option value="weeks">Weekly</option>
-            <option value="months">Monthly</option>
-          </select>
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 class="page-title">My Tasks</h1>
+          <span class="page-date" id="pageDate"></span>
         </div>
-
-        <div class="filter-group">
-          <label for="sortOption">Sort by:</label>
-          <select id="sortOption">
-            <option value="none">None</option>
-            <option value="priority">Priority (High → Low)</option>
-            <option value="date">Due date (Earliest First)</option>
-          </select>
+        <div class="topbar-right">
+          <div class="search-wrap">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search tasks…" />
+          </div>
+          <div class="sort-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+            <select id="sortOption" class="sort-select">
+              <option value="none">Sort: Default</option>
+              <option value="priority">Priority: High first</option>
+              <option value="date">Date: Earliest first</option>
+            </select>
+          </div>
         </div>
+      </header>
 
-        <div class="filter-group">
-          <label for="searchInput">Search:</label>
-          <input type="text" id="searchInput" placeholder="Search tasks..." />
+      <!-- Add Task Form -->
+      <section class="add-task-panel">
+        <div class="panel-header">
+          <span class="panel-title">New Task</span>
         </div>
-      </div>
+        <form id="task-form" novalidate>
+          <div class="form-grid">
+            <div class="field-group">
+              <label for="groupName">Group</label>
+              <input type="text" id="groupName" placeholder="Work, Personal…" autocomplete="off" />
+              <span class="field-error" id="groupName-error"></span>
+            </div>
+            <div class="field-group field-group--wide">
+              <label for="taskInput">Task</label>
+              <input type="text" id="taskInput" placeholder="What needs to be done?" autocomplete="off" />
+              <span class="field-error" id="taskInput-error"></span>
+            </div>
+            <div class="field-group">
+              <label for="taskPriority">Priority</label>
+              <select id="taskPriority">
+                <option value="low">🟢 Low</option>
+                <option value="medium" selected>🟡 Medium</option>
+                <option value="high">🔴 High</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="taskDate">Due Date</label>
+              <input type="date" id="taskDate" />
+            </div>
+            <div class="field-group">
+              <label for="taskTimer">Timer (min)</label>
+              <input type="number" id="taskTimer" min="1" max="999" placeholder="Optional" />
+            </div>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn-add">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Task
+            </button>
+            <span class="form-feedback" id="form-feedback"></span>
+          </div>
+        </form>
+      </section>
 
-      <div class="action-buttons">
-        <button id="deleteAllBtn" class="btn-danger">🗑 Clear All</button>
-      </div>
-    </div>
+      <!-- Tasks area -->
+      <section class="tasks-area">
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <h2>All clear!</h2>
+          <p>Add your first task above to get started.</p>
+        </div>
+        <div id="groupsContainer"></div>
+      </section>
 
-    <div id="emptyState" class="empty-state">
-      <div class="empty-state-icon">📋</div>
-      <h2>No tasks yet</h2>
-      <p>Create your first task to get started!</p>
-    </div>
-
-    <div id="groupsContainer"></div>
-  </main>
+    </main>
+  </div>
 
   <script src="app.js"></script>
+  <script>
+    // Set today's date in header
+    document.getElementById('pageDate').textContent = new Date().toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric'
+    });
+  </script>
 </body>
-
 </html>
