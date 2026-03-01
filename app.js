@@ -1,571 +1,544 @@
-// Central tasks state persisted in localStorage
-let tasks = [];
+// ============================================================
+//  TaskFlow — app.js
+//  Updated to work with the redesigned UI
+// ============================================================
 
-// Utilities: storage
-async function saveTasks() {
+let tasks = [];
+let currentView = 'groups'; // 'groups', 'weeks', 'months'
+
+// ─── Storage ────────────────────────────────────────────────
+
+function saveTasks() {
   try {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
+    localStorage.setItem('taskflow_tasks', JSON.stringify(tasks));
   } catch (e) {
-    console.error("Failed to save tasks:", e);
-    showFormFeedback("Failed to save tasks", "error");
+    showFormFeedback('Failed to save tasks', 'error');
   }
+  updateSidebarStats();
 }
 
-async function loadTasks() {
+function loadTasks() {
   try {
-    const stored = localStorage.getItem('tasks');
-    tasks = stored ? JSON.parse(stored) : [];
+    const stored = localStorage.getItem('taskflow_tasks');
+    // migrate from old key if needed
+    const legacy = !stored && localStorage.getItem('tasks');
+    tasks = stored ? JSON.parse(stored) : (legacy ? JSON.parse(legacy) : []);
   } catch (e) {
-    console.error("Failed to parse tasks from storage, resetting.", e);
     tasks = [];
   }
-
-  // Render tasks based on current view
   renderAllTasks();
 }
 
-let currentView = 'groups'; // 'groups', 'weeks', 'months'
-
-function getWeekNumber(d) {
-    // ISO week date
-    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-    return { year: d.getUTCFullYear(), week: weekNo };
-}
-
-function getGroupNameForTask(task) {
-    if (currentView === 'groups') {
-        return task.groupName;
-    } else if (currentView === 'weeks') {
-        if (!task.date) return "No Date";
-        const date = new Date(task.date);
-        const { year, week } = getWeekNumber(date);
-        return `Week ${week}, ${year}`;
-    } else if (currentView === 'months') {
-        if (!task.date) return "No Date";
-        const date = new Date(task.date);
-        return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-    }
-    return 'Unknown';
-}
-
-function renderAllTasks() {
-    const groupsContainer = document.getElementById("groupsContainer");
-    const emptyState = document.getElementById("emptyState");
-    
-    groupsContainer.innerHTML = "";
-    
-    if (tasks.length === 0) {
-        emptyState.classList.add("show");
-        return;
-    }
-    
-    emptyState.classList.remove("show");
-    
-    let tasksToRender = [...tasks];
-    
-    // Apply search filter if any
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput && searchInput.value.trim()) {
-        const searchTerm = searchInput.value.toLowerCase();
-        tasksToRender = tasksToRender.filter(task =>
-            task.text.toLowerCase().includes(searchTerm) ||
-            task.groupName.toLowerCase().includes(searchTerm)
-        );
-    }
-
-    // If viewing by date, pre-sort by date so groups appear in order
-    if (currentView !== 'groups') {
-        tasksToRender.sort((a, b) => {
-             if (!a.date) return 1;
-             if (!b.date) return -1;
-             return a.date.localeCompare(b.date);
-        });
-    }
-
-    tasksToRender.forEach(task => {
-        renderTask(task);
-    });
-
-    applySorting();
-}
+// ─── Utility ─────────────────────────────────────────────────
 
 function generateId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createOrGetGroup(groupName) {
-  let groupDiv = document.querySelector(`[data-group="${groupName}"]`);
+function capitalizeFirstLetter(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
-  if (!groupDiv) {
-    groupDiv = document.createElement("div");
-    groupDiv.className = "group";
-    groupDiv.setAttribute("data-group", groupName);
-
-    const title = document.createElement("h2");
-    title.textContent = groupName;
-    groupDiv.appendChild(title);
-
-    const taskList = document.createElement("ul");
-    taskList.id = `list-${groupName}`;
-    groupDiv.appendChild(taskList);
-
-    document.getElementById("groupsContainer").appendChild(groupDiv);
-  }
-
-  return groupDiv.querySelector("ul");
+function minutesAndSeconds(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 function isOverdue(dateStr) {
   if (!dateStr) return false;
-  // Compare YYYY-MM-DD lexicographically; safe for same format
   const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate()).padStart(2, "0");
-  const todayStr = `${yyyy}-${mm}-${dd}`;
+  const todayStr = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
   return dateStr < todayStr;
 }
 
-function applyOverdueClass(li, task) {
-  if (task.completed) {
-    li.classList.remove("overdue");
-    return;
-  }
-  if (isOverdue(task.date)) li.classList.add("overdue");
-  else li.classList.remove("overdue");
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { year: d.getUTCFullYear(), week: weekNo };
 }
 
-function minutesAndSeconds(totalSeconds) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
-function renderTask(task) {
-  const dynamicGroupName = getGroupNameForTask(task);
-  const taskList = createOrGetGroup(dynamicGroupName);
-
-  // li container
-  const li = document.createElement("li");
-  li.dataset.taskId = task.id;
-  li.classList.add(`priority-${task.priority}`);
-  li.classList.add('slide-in'); // Animation class
-  if (task.completed) li.classList.add("completed");
-
-  const taskDetailsDiv = document.createElement("div");
-  taskDetailsDiv.className = "task-details";
-
-  const taskTextSpan = document.createElement("span");
-  taskTextSpan.textContent = task.text;
-  taskTextSpan.className = "task-text";
-
-  const infoDiv = document.createElement("div");
-  infoDiv.className = "task-info";
-
-  const prioritySpan = document.createElement("span");
-  prioritySpan.textContent = `Priority: ${capitalizeFirstLetter(task.priority)} | `;
-  const dateSpan = document.createElement("span");
-  dateSpan.textContent = task.date ? `Due: ${task.date}` : "";
-
-  infoDiv.appendChild(prioritySpan);
-  infoDiv.appendChild(dateSpan);
-
-  taskDetailsDiv.appendChild(taskTextSpan);
-  taskDetailsDiv.appendChild(infoDiv);
-
-  const taskActionsDiv = document.createElement("div");
-  taskActionsDiv.className = "task-actions";
-
-  // Timer elements
-  if (task.timerMinutes && task.timerMinutes > 0) {
-    const timerContainer = document.createElement("div");
-    timerContainer.className = "timer-container";
-
-    const timerDisplay = document.createElement("span");
-    timerDisplay.className = "timer-display";
-
-    const initialSeconds = Number.isFinite(task.remainingSeconds)
-      ? Math.max(0, Number(task.remainingSeconds))
-      : task.timerMinutes * 60;
-
-    if (task.timerState === "done" || initialSeconds === 0) {
-      timerDisplay.textContent = "Time's up!";
-      timerDisplay.classList.add("timer-expired");
-    } else {
-      timerDisplay.textContent = minutesAndSeconds(initialSeconds);
-    }
-
-    const startTimerBtn = document.createElement("button");
-    startTimerBtn.className = "start-timer-btn";
-
-    function setTimerButtonState() {
-      if (task.timerState === "running") {
-        startTimerBtn.textContent = "Pause";
-        startTimerBtn.title = "Pause Timer";
-        startTimerBtn.disabled = false;
-      } else if (task.timerState === "done") {
-        startTimerBtn.textContent = "Done";
-        startTimerBtn.title = "Timer finished";
-        startTimerBtn.disabled = true;
-      } else if (task.timerState === "paused") {
-        startTimerBtn.textContent = "Resume";
-        startTimerBtn.title = "Resume Timer";
-        startTimerBtn.disabled = false;
-      } else {
-        startTimerBtn.textContent = "Start";
-        startTimerBtn.title = "Start Timer";
-        startTimerBtn.disabled = false;
-      }
-    }
-
-    setTimerButtonState();
-
-    startTimerBtn.onclick = function () {
-      // If already running, pause
-      if (timerDisplay.dataset.intervalId) {
-        const id = parseInt(timerDisplay.dataset.intervalId, 10);
-        clearInterval(id);
-        delete timerDisplay.dataset.intervalId;
-        const t = getTaskById(task.id);
-        if (t) {
-          t.timerState = "paused";
-          // remainingSeconds already updated during running
-          saveTasks();
-        }
-        setTimerButtonState();
-        return;
-      }
-
-      // Start/resume
-      const t = getTaskById(task.id);
-      if (!t) return;
-      startTimer(startTimerBtn, timerDisplay, t);
-      setTimerButtonState();
-    };
-
-    timerContainer.appendChild(timerDisplay);
-    timerContainer.appendChild(startTimerBtn);
-    taskActionsDiv.appendChild(timerContainer);
+function getGroupNameForTask(task) {
+  if (currentView === 'groups') return task.groupName;
+  if (currentView === 'weeks') {
+    if (!task.date) return 'No Date';
+    const { year, week } = getWeekNumber(new Date(task.date));
+    return `Week ${week}, ${year}`;
   }
-
-  // Complete button
-  const completeBtn = document.createElement("button");
-  completeBtn.textContent = "✔";
-  completeBtn.title = "Toggle Complete";
-  completeBtn.onclick = function () {
-    li.classList.toggle("completed");
-    const t = getTaskById(task.id);
-    if (t) {
-      t.completed = li.classList.contains("completed");
-      saveTasks();
-      applyOverdueClass(li, t);
-    }
-  };
-
-  // Delete button
-  const deleteBtn = document.createElement("button");
-  deleteBtn.innerHTML = '<i class="fas fa-trash"></i> 🗑'; // Use icon if available, or just text
-  deleteBtn.textContent = '🗑';
-  deleteBtn.title = "Delete Task";
-  deleteBtn.onclick = function () {
-    // Clear any active timer for this task
-    const timerDisplay = li.querySelector(".timer-display[data-interval-id]");
-    if (timerDisplay) {
-      clearInterval(parseInt(timerDisplay.dataset.intervalId, 10));
-      delete timerDisplay.dataset.intervalId;
-    }
-
-    // Add exit animation class
-    li.classList.remove('slide-in');
-    li.classList.add('slide-out');
-
-    // Wait for animation to finish before removing
-    li.addEventListener('animationend', () => {
-        // Remove from DOM
-        const parentList = li.parentElement;
-        if (parentList) parentList.removeChild(li);
-
-        // Remove from state
-        tasks = tasks.filter((t) => t.id !== task.id);
-        saveTasks();
-
-        // If taskList is empty, remove the group
-        if (parentList && parentList.children.length === 0) {
-            const groupContainer = parentList.parentNode;
-            const container = document.getElementById("groupsContainer");
-            if (
-                groupContainer &&
-                groupContainer.classList.contains("group") &&
-                groupContainer.parentNode === container
-            ) {
-                groupContainer.parentNode.removeChild(groupContainer);
-            }
-        }
-    });
-  };
-
-  // Group action buttons (Complete & Delete)
-  const taskButtons = document.createElement("div");
-  taskButtons.className = "task-buttons";
-  taskButtons.appendChild(completeBtn);
-  taskButtons.appendChild(deleteBtn);
-
-  taskActionsDiv.appendChild(taskButtons);
-
-  li.appendChild(taskDetailsDiv);
-  li.appendChild(taskActionsDiv);
-
-  taskList.appendChild(li);
-
-  // overdue visual
-  applyOverdueClass(li, task);
+  if (currentView === 'months') {
+    if (!task.date) return 'No Date';
+    return new Date(task.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+  }
+  return 'Unknown';
 }
 
 function getTaskById(id) {
-  return tasks.find((t) => t.id === id);
+  return tasks.find(t => t.id === id);
 }
 
-// Public API
-function addTask() {
-  const groupName = document.getElementById("groupName").value.trim();
-  const taskText = document.getElementById("taskInput").value.trim();
-  const taskPriority = document.getElementById("taskPriority").value;
-  const taskDate = document.getElementById("taskDate").value;
-  const taskTimerMinutesInput = document.getElementById("taskTimer").value;
+// ─── Stats ───────────────────────────────────────────────────
 
-  // Clear error messages
-  clearValidationErrors();
+function updateSidebarStats() {
+  const total   = tasks.length;
+  const done    = tasks.filter(t => t.completed).length;
+  const overdue = tasks.filter(t => !t.completed && isOverdue(t.date)).length;
 
-  // Validate inputs
-  if (!groupName) {
-    showValidationError("groupName", "Group name is required");
+  const el = (id) => document.getElementById(id);
+  if (el('statTotal'))   el('statTotal').textContent   = total;
+  if (el('statDone'))    el('statDone').textContent    = done;
+  if (el('statOverdue')) el('statOverdue').textContent = overdue;
+}
+
+// ─── Rendering ───────────────────────────────────────────────
+
+function renderAllTasks() {
+  const container   = document.getElementById('groupsContainer');
+  const emptyState  = document.getElementById('emptyState');
+  container.innerHTML = '';
+
+  if (tasks.length === 0) {
+    emptyState.classList.add('show');
+    updateSidebarStats();
     return;
+  }
+
+  emptyState.classList.remove('show');
+
+  let list = [...tasks];
+
+  // Search filter
+  const searchVal = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+  if (searchVal) {
+    list = list.filter(t =>
+      t.text.toLowerCase().includes(searchVal) ||
+      t.groupName.toLowerCase().includes(searchVal)
+    );
+  }
+
+  // Pre-sort by date when in time-based views
+  if (currentView !== 'groups') {
+    list.sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date.localeCompare(b.date);
+    });
+  }
+
+  list.forEach(t => renderTask(t));
+  applySorting();
+  updateSidebarStats();
+}
+
+function createOrGetGroup(groupName) {
+  let groupDiv = document.querySelector(`[data-group="${CSS.escape(groupName)}"]`);
+
+  if (!groupDiv) {
+    groupDiv = document.createElement('div');
+    groupDiv.className = 'group';
+    groupDiv.setAttribute('data-group', groupName);
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+
+    const title = document.createElement('span');
+    title.className = 'group-title';
+    title.textContent = groupName;
+
+    const count = document.createElement('span');
+    count.className = 'group-count';
+    count.textContent = '0';
+
+    header.appendChild(title);
+    header.appendChild(count);
+    groupDiv.appendChild(header);
+
+    const ul = document.createElement('ul');
+    ul.className = 'task-list';
+    ul.id = `list-${groupName}`;
+    groupDiv.appendChild(ul);
+
+    document.getElementById('groupsContainer').appendChild(groupDiv);
+  }
+
+  // Update count
+  const ul = groupDiv.querySelector('ul');
+  const countEl = groupDiv.querySelector('.group-count');
+  if (countEl) {
+    // will be updated after append
+    setTimeout(() => {
+      countEl.textContent = ul.querySelectorAll('li:not(.hidden-by-search)').length;
+    }, 0);
+  }
+
+  return ul;
+}
+
+function renderTask(task) {
+  const groupName = getGroupNameForTask(task);
+  const ul = createOrGetGroup(groupName);
+
+  const li = document.createElement('li');
+  li.className = `task-item priority-${task.priority} slide-in`;
+  li.dataset.taskId = task.id;
+  if (task.completed) li.classList.add('completed');
+  if (!task.completed && isOverdue(task.date)) li.classList.add('overdue');
+
+  // ── Check button
+  const checkBtn = document.createElement('button');
+  checkBtn.className = 'task-check';
+  checkBtn.title = 'Toggle complete';
+  checkBtn.setAttribute('aria-label', 'Toggle complete');
+  checkBtn.innerHTML = `<svg class="task-check-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="2,6 5,9 10,3"/></svg>`;
+  checkBtn.onclick = () => toggleComplete(task.id, li);
+
+  // ── Task body
+  const body = document.createElement('div');
+  body.className = 'task-body';
+
+  const textEl = document.createElement('div');
+  textEl.className = 'task-text';
+  textEl.textContent = task.text;
+  textEl.title = task.text;
+
+  const meta = document.createElement('div');
+  meta.className = 'task-meta';
+
+  // Priority badge
+  const priTag = document.createElement('span');
+  priTag.className = `meta-tag priority-${task.priority}`;
+  priTag.textContent = capitalizeFirstLetter(task.priority);
+  meta.appendChild(priTag);
+
+  // Date badge
+  if (task.date) {
+    const dateTag = document.createElement('span');
+    dateTag.className = `meta-tag${isOverdue(task.date) && !task.completed ? ' overdue-tag' : ''}`;
+    const label = isOverdue(task.date) && !task.completed ? '⚠ ' : '';
+    dateTag.textContent = `${label}${task.date}`;
+    meta.appendChild(dateTag);
+  }
+
+  body.appendChild(textEl);
+  body.appendChild(meta);
+
+  // ── Actions
+  const actions = document.createElement('div');
+  actions.className = 'task-actions';
+
+  // Timer
+  if (task.timerMinutes && task.timerMinutes > 0) {
+    const timerWrap = document.createElement('div');
+    timerWrap.className = 'timer-container';
+
+    const display = document.createElement('span');
+    display.className = 'timer-display';
+
+    const initSecs = Number.isFinite(task.remainingSeconds) && task.remainingSeconds > 0
+      ? Math.max(0, Math.floor(task.remainingSeconds))
+      : task.timerMinutes * 60;
+
+    if (task.timerState === 'done' || initSecs === 0) {
+      display.textContent = "Done!";
+      display.classList.add('timer-expired');
+    } else {
+      display.textContent = minutesAndSeconds(initSecs);
+    }
+
+    const timerBtn = document.createElement('button');
+    timerBtn.className = 'start-timer-btn';
+
+    function refreshTimerBtn() {
+      if (task.timerState === 'running') {
+        timerBtn.textContent = 'Pause';
+      } else if (task.timerState === 'done') {
+        timerBtn.textContent = 'Done';
+        timerBtn.disabled = true;
+      } else if (task.timerState === 'paused') {
+        timerBtn.textContent = 'Resume';
+      } else {
+        timerBtn.textContent = 'Start';
+      }
+    }
+
+    refreshTimerBtn();
+
+    timerBtn.onclick = () => {
+      const t = getTaskById(task.id);
+      if (!t) return;
+      if (display.dataset.intervalId) {
+        clearInterval(parseInt(display.dataset.intervalId));
+        delete display.dataset.intervalId;
+        t.timerState = 'paused';
+        saveTasks();
+        refreshTimerBtn();
+        return;
+      }
+      startTimer(timerBtn, display, t);
+      refreshTimerBtn();
+    };
+
+    timerWrap.appendChild(display);
+    timerWrap.appendChild(timerBtn);
+    actions.appendChild(timerWrap);
+  }
+
+  // Delete button
+  const delBtn = document.createElement('button');
+  delBtn.className = 'task-btn delete-btn';
+  delBtn.title = 'Delete task';
+  delBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
+  delBtn.onclick = () => deleteTask(task.id, li);
+
+  actions.appendChild(delBtn);
+
+  li.appendChild(checkBtn);
+  li.appendChild(body);
+  li.appendChild(actions);
+  ul.appendChild(li);
+}
+
+// ─── Actions ─────────────────────────────────────────────────
+
+function toggleComplete(id, li) {
+  const t = getTaskById(id);
+  if (!t) return;
+  t.completed = !t.completed;
+  li.classList.toggle('completed', t.completed);
+  if (t.completed) {
+    li.classList.remove('overdue');
+  } else if (isOverdue(t.date)) {
+    li.classList.add('overdue');
+  }
+  saveTasks();
+}
+
+function deleteTask(id, li) {
+  li.classList.add('slide-out');
+  li.addEventListener('animationend', () => {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks();
+    li.remove();
+    // Remove empty group
+    const ul = li.closest('ul');
+    if (ul && ul.children.length === 0) {
+      ul.closest('.group')?.remove();
+    }
+    if (tasks.length === 0) {
+      document.getElementById('emptyState').classList.add('show');
+    }
+    updateSidebarStats();
+  }, { once: true });
+}
+
+function deleteAllTasks() {
+  document.querySelectorAll('.timer-display[data-interval-id]').forEach(el => {
+    clearInterval(parseInt(el.dataset.intervalId));
+  });
+  tasks = [];
+  saveTasks();
+  document.getElementById('groupsContainer').innerHTML = '';
+  document.getElementById('emptyState').classList.add('show');
+}
+
+function addTask() {
+  const groupName = document.getElementById('groupName').value.trim();
+  const taskText  = document.getElementById('taskInput').value.trim();
+  const priority  = document.getElementById('taskPriority').value;
+  const date      = document.getElementById('taskDate').value;
+  const timerVal  = parseInt(document.getElementById('taskTimer').value, 10);
+
+  // Clear errors
+  document.querySelectorAll('.field-error').forEach(el => {
+    el.textContent = '';
+    el.classList.remove('show');
+  });
+
+  let valid = true;
+  if (!groupName) {
+    const el = document.getElementById('groupName-error');
+    el.textContent = 'Group name is required';
+    el.classList.add('show');
+    valid = false;
   }
   if (!taskText) {
-    showValidationError("taskInput", "Task description is required");
-    return;
+    const el = document.getElementById('taskInput-error');
+    el.textContent = 'Task description is required';
+    el.classList.add('show');
+    valid = false;
   }
+  if (!valid) return;
 
-  const taskTimerMinutes = parseInt(taskTimerMinutesInput, 10);
+  const timer = !isNaN(timerVal) && timerVal > 0 ? timerVal : 0;
 
   const task = {
-    id: generateId(),
+    id:               generateId(),
     groupName,
-    text: taskText,
-    priority: taskPriority,
-    date: taskDate || "",
-    timerMinutes: !isNaN(taskTimerMinutes) && taskTimerMinutes > 0 ? taskTimerMinutes : 0,
-    remainingSeconds: !isNaN(taskTimerMinutes) && taskTimerMinutes > 0 ? taskTimerMinutes * 60 : 0,
-    timerState: (!isNaN(taskTimerMinutes) && taskTimerMinutes > 0) ? "idle" : "none",
-    completed: false,
+    text:             taskText,
+    priority,
+    date:             date || '',
+    timerMinutes:     timer,
+    remainingSeconds: timer * 60,
+    timerState:       timer > 0 ? 'idle' : 'none',
+    completed:        false,
   };
 
   tasks.push(task);
   saveTasks();
-  renderTask(task);
-  applySorting();
 
-  // Show success message
-  showFormFeedback("✓ Task added successfully!", "success");
-
-  // Clear inputs
-  document.getElementById("groupName").value = "";
-  document.getElementById("taskInput").value = "";
-  document.getElementById("taskPriority").value = "medium";
-  document.getElementById("taskDate").value = "";
-  document.getElementById("taskTimer").value = "";
-  
-  // Re-render all if view is not 'groups', because a new task might belong to a specific week
   if (currentView !== 'groups') {
-      renderAllTasks();
-  }
-}
-
-function deleteAllTasks() {
-  // Clear any running timers
-  document.querySelectorAll(".timer-display[data-interval-id]").forEach((el) => {
-    clearInterval(parseInt(el.dataset.intervalId, 10));
-    delete el.dataset.intervalId;
-  });
-
-  const groupsContainer = document.getElementById("groupsContainer");
-  groupsContainer.innerHTML = "";
-  tasks = [];
-  saveTasks();
-}
-
-function startTimer(button, displayElement, task) {
-  // Clear any existing interval on this display element before starting a new one
-  if (displayElement.dataset.intervalId) {
-    clearInterval(parseInt(displayElement.dataset.intervalId, 10));
-    delete displayElement.dataset.intervalId;
+    renderAllTasks();
+  } else {
+    document.getElementById('emptyState').classList.remove('show');
+    renderTask(task);
+    applySorting();
   }
 
-  let totalSeconds = Number.isFinite(task.remainingSeconds) && task.remainingSeconds > 0
+  showFormFeedback('✓ Task added!', 'success');
+
+  document.getElementById('groupName').value   = '';
+  document.getElementById('taskInput').value   = '';
+  document.getElementById('taskPriority').value = 'medium';
+  document.getElementById('taskDate').value    = '';
+  document.getElementById('taskTimer').value   = '';
+  document.getElementById('taskInput').focus();
+}
+
+// ─── Timer ───────────────────────────────────────────────────
+
+function startTimer(button, display, task) {
+  if (display.dataset.intervalId) {
+    clearInterval(parseInt(display.dataset.intervalId));
+    delete display.dataset.intervalId;
+  }
+
+  let secs = Number.isFinite(task.remainingSeconds) && task.remainingSeconds > 0
     ? Math.floor(task.remainingSeconds)
     : (task.timerMinutes || 0) * 60;
 
-  if (totalSeconds <= 0) {
-    // Nothing to run
-    task.timerState = "done";
-    displayElement.textContent = "Time's up!";
-    displayElement.classList.add("timer-expired");
+  if (secs <= 0) {
+    task.timerState = 'done';
+    display.textContent = 'Done!';
+    display.classList.add('timer-expired');
     button.disabled = true;
     saveTasks();
     return;
   }
 
-  const updateDisplay = () => {
-    displayElement.textContent = minutesAndSeconds(totalSeconds);
-  };
-
-  updateDisplay(); // Initial display
-
-  task.timerState = "running";
+  display.textContent = minutesAndSeconds(secs);
+  task.timerState = 'running';
   saveTasks();
 
-  const timerInterval = setInterval(() => {
-    totalSeconds--;
-    task.remainingSeconds = Math.max(0, totalSeconds);
-    updateDisplay();
+  const id = setInterval(() => {
+    secs--;
+    task.remainingSeconds = Math.max(0, secs);
+    display.textContent = minutesAndSeconds(secs);
 
-    if (totalSeconds <= 0) {
-      clearInterval(timerInterval);
-      delete displayElement.dataset.intervalId;
-      displayElement.textContent = "Time's up!";
-      displayElement.classList.add("timer-expired");
+    if (secs <= 0) {
+      clearInterval(id);
+      delete display.dataset.intervalId;
+      display.textContent = 'Done!';
+      display.classList.add('timer-expired');
+      button.textContent = 'Done';
       button.disabled = true;
-      button.textContent = "Done";
-      task.timerState = "done";
+      task.timerState = 'done';
       task.remainingSeconds = 0;
-      const taskLi = displayElement.closest('li');
-      if (taskLi) {
-        taskLi.classList.add('timer-finished-highlight');
-        setTimeout(() => {
-          taskLi.classList.remove('timer-finished-highlight');
-        }, 2000);
+      const li = display.closest('li');
+      if (li) {
+        li.classList.add('timer-finished-highlight');
+        setTimeout(() => li.classList.remove('timer-finished-highlight'), 700);
       }
       saveTasks();
       return;
     }
 
-    // Persist progress (optional: could throttle)
     saveTasks();
   }, 1000);
 
-  displayElement.dataset.intervalId = String(timerInterval);
-  button.textContent = "Pause";
-  button.title = "Pause Timer";
+  display.dataset.intervalId = String(id);
+  button.textContent = 'Pause';
 }
 
-// Sorting support
+// ─── Sorting ─────────────────────────────────────────────────
+
 function applySorting() {
-  const sortSelect = document.getElementById('sortOption');
-  const mode = sortSelect ? sortSelect.value : 'none';
+  const mode = document.getElementById('sortOption')?.value;
   if (!mode || mode === 'none') return;
 
-  const byPriority = (a, b) => {
-    const map = { high: 2, medium: 1, low: 0 };
-    const ta = getTaskById(a.dataset.taskId);
-    const tb = getTaskById(b.dataset.taskId);
-    const va = ta ? map[ta.priority] || 0 : 0;
-    const vb = tb ? map[tb.priority] || 0 : 0;
-    return vb - va; // high first
-  };
+  const priority = { high: 2, medium: 1, low: 0 };
 
-  const byDate = (a, b) => {
-    const ta = getTaskById(a.dataset.taskId);
-    const tb = getTaskById(b.dataset.taskId);
-    const da = ta && ta.date ? ta.date : '9999-12-31';
-    const db = tb && tb.date ? tb.date : '9999-12-31';
-    if (da === db) return 0;
-    return da < db ? -1 : 1; // earlier first
-  };
-
-  document.querySelectorAll('.group ul').forEach((ul) => {
+  document.querySelectorAll('.task-list').forEach(ul => {
     const items = Array.from(ul.children);
-    items.sort(mode === 'priority' ? byPriority : byDate);
-    items.forEach((li) => ul.appendChild(li));
-  });
-}
-
-// Helper function
-function capitalizeFirstLetter(string) {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-// Form validation helpers
-function clearValidationErrors() {
-  document.querySelectorAll('.error-message').forEach(el => {
-    el.classList.remove('show');
-    el.textContent = '';
-  });
-}
-
-function showValidationError(fieldId, message) {
-  const errorEl = document.getElementById(`${fieldId}-error`);
-  if (errorEl) {
-    errorEl.textContent = message;
-    errorEl.classList.add('show');
-  }
-}
-
-function showFormFeedback(message, type = 'success') {
-  const feedbackEl = document.getElementById('form-feedback');
-  if (feedbackEl) {
-    feedbackEl.textContent = message;
-    feedbackEl.className = `form-feedback show ${type}`;
-    setTimeout(() => {
-      feedbackEl.classList.remove('show');
-    }, 3000);
-  }
-}
-
-// Init on load
-(function init() {
-  // Form submission
-  const form = document.getElementById('task-form');
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      addTask();
-    });
-  }
-
-  // If a sort dropdown exists, wire it
-  const sortSelect = document.getElementById('sortOption');
-  if (sortSelect) {
-    sortSelect.addEventListener('change', applySorting);
-  }
-
-  const viewSelect = document.getElementById('viewOption');
-  if (viewSelect) {
-    viewSelect.addEventListener('change', (e) => {
-      currentView = e.target.value;
-      renderAllTasks();
-    });
-  }
-
-  // Search input
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      renderAllTasks();
-    });
-  }
-
-  // Delete all button
-  const deleteAllBtn = document.getElementById('deleteAllBtn');
-  if (deleteAllBtn) {
-    deleteAllBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to delete all tasks? This cannot be undone.')) {
-        deleteAllTasks();
+    items.sort((a, b) => {
+      const ta = getTaskById(a.dataset.taskId);
+      const tb = getTaskById(b.dataset.taskId);
+      if (!ta || !tb) return 0;
+      if (mode === 'priority') {
+        return (priority[tb.priority] || 0) - (priority[ta.priority] || 0);
       }
+      if (mode === 'date') {
+        const da = ta.date || '9999-12-31';
+        const db = tb.date || '9999-12-31';
+        return da < db ? -1 : da > db ? 1 : 0;
+      }
+      return 0;
     });
-  }
+    items.forEach(li => ul.appendChild(li));
+  });
+}
+
+// ─── Form Feedback ───────────────────────────────────────────
+
+function showFormFeedback(msg, type = 'success') {
+  const el = document.getElementById('form-feedback');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `form-feedback show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ─── Init ────────────────────────────────────────────────────
+
+(function init() {
+  // Form submit
+  document.getElementById('task-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    addTask();
+  });
+
+  // Sort
+  document.getElementById('sortOption')?.addEventListener('change', applySorting);
+
+  // View nav buttons
+  document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentView = btn.dataset.view;
+      document.querySelectorAll('.nav-btn[data-view]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderAllTasks();
+    });
+  });
+
+  // Legacy view select (not in new HTML, kept for safety)
+  document.getElementById('viewOption')?.addEventListener('change', e => {
+    currentView = e.target.value;
+    renderAllTasks();
+  });
+
+  // Search
+  document.getElementById('searchInput')?.addEventListener('input', renderAllTasks);
+
+  // Delete all
+  document.getElementById('deleteAllBtn')?.addEventListener('click', () => {
+    if (confirm('Delete all tasks? This cannot be undone.')) {
+      deleteAllTasks();
+    }
+  });
 
   loadTasks();
 })();
