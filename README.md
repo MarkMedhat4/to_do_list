@@ -1,181 +1,189 @@
-# 📝 Modern To-Do List Application
+# 📝 TaskFlow — To-Do List App
 
-A feature-rich, aesthetically pleasing to-do list application with a **Glassmorphism UI**, **Notion-style** grouping views, and persistent local storage. Organize, prioritize, and manage your tasks with timers and multiple viewing options.
+A professional, feature-rich task management app with a **dark glassmorphism UI**, sidebar navigation, real-time stats, and full task organization with groups, priorities, timers, and multiple view modes.
 
 ![Built with](https://img.shields.io/badge/Built%20with-HTML%2FCSS%2FJS-blue) ![License](https://img.shields.io/badge/License-MIT-green)
 
+---
+
 ## ✨ Features
 
-### 📋 **Task Management**
-- ✅ Create tasks with custom group organization
-- ✅ Set task **priorities** (Low, Medium, High) with visual indicators
-- ✅ Add **due dates** with overdue tracking
-- ✅ Mark tasks as complete with visual feedback
-- ✅ Delete individual tasks or clear all at once (with confirmation)
-- ✅ Real-time search and filter functionality
+### 📋 Task Management
+- Create tasks with custom group names
+- Set **priorities** (Low / Medium / High) with color-coded indicators
+- Add **due dates** with automatic overdue detection
+- Mark tasks as complete or delete them individually
+- **Clear All** button with confirmation dialog
 
-### 🎯 **Viewing Options**
-- **Groups View**: Organize tasks by custom group names
-- **Weekly View**: Automatically group tasks by ISO week number
-- **Monthly View**: View tasks organized by month and year
-- Smooth transitions between different view modes
+### 🗂 View Modes (Sidebar)
+- **Groups** — Organize tasks by your custom group names
+- **Weekly** — Auto-group tasks by ISO week number
+- **Monthly** — View tasks organized by month and year
 
-### ⏱️ **Task Timers**
-- Built-in Pomodoro-style task timers
-- Start, pause, and resume timer functionality
-- Visual timer display with automatic completion detection
-- Success animation when timer finishes
+### 📊 Live Stats (Sidebar)
+- Real-time counters for **Total**, **Done**, and **Overdue** tasks
+- Updates instantly on every add, complete, or delete action
 
-### 🎨 **Advanced UI/UX**
-- Beautiful Glassmorphism design with frosted glass effects
-- Vibrant gradient background (teal to purple)
-- Smooth animations and transitions
-- Priority-based color indicators (green, orange, red)
-- Empty state messaging for better guidance
-- Fully responsive design (desktop, tablet, mobile)
-- Form validation with error messages
-- Success/failure feedback notifications
+### ⏱ Task Timers
+- Pomodoro-style per-task countdown timer
+- Start, Pause, and Resume support
+- Visual flash animation when timer finishes
+- Timer state persists across page reloads
 
-### 💾 **Data Persistence**
-- Tasks saved automatically to browser's LocalStorage
-- Data persists across browser sessions
-- No backend server required
-- Instant sync across browser tabs
+### 🔍 Search & Sort
+- Real-time search filters tasks by name or group
+- Sort by **Priority** (High → Low) or **Due Date** (Earliest first)
 
-## 🛠️ Tech Stack
+### 🎨 UI / UX
+- Dark theme with warm yellow accent (`#f5c542`)
+- DM Sans + DM Mono typography
+- Priority color strip on each task card (green / orange / red)
+- Smooth slide-in animations on task creation
+- Overdue tasks highlighted with a red tint
+- Fully responsive — works on desktop, tablet, and mobile
+
+### 💾 Data Persistence
+- Saved automatically to `localStorage` on every change
+- Migrates data from older app versions automatically
+- No backend or internet connection required
+
+---
+
+## 🛠 Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| **Frontend** | HTML5, CSS3 (Custom Properties, Flexbox, Grid) |
-| **Styling** | Glassmorphism, Gradient Backgrounds, Animations |
-| **JavaScript** | ES6+, Async/Await, Event Handling, LocalStorage API |
-| **Font** | Poppins (Google Fonts) |
-| **Storage** | Browser LocalStorage |
+|---|---|
+| Frontend | HTML5, CSS3 (Custom Properties, Grid, Flexbox) |
+| Scripting | Vanilla JS (ES6+) |
+| Fonts | DM Sans + DM Mono (Google Fonts) |
+| Storage | Browser `localStorage` |
+| Optional Backend | C++ HTTP server (`backend.cpp`) |
+
+---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Any modern web browser (Chrome, Firefox, Safari, Edge)
-- No backend server or compilation required!
+### No Installation Needed
+1. Download all project files into the same folder
+2. Open `index.html` in any modern browser
+3. Start adding tasks!
 
-### Installation & Running
-1. **Clone or Download** the project files
-2. **Open** `index.html` in your web browser
-   - Double-click the file, or
-   - Right-click → "Open with" → Select your browser
-3. **Start adding tasks!**
+### Optional C++ Backend (Windows)
+If you want file-based persistence instead of localStorage, compile and run the backend:
+
+```bash
+# Option 1: Use the batch script
+run_backend.bat
+
+# Option 2: Compile manually
+g++ backend.cpp -o backend.exe -lws2_32
+backend.exe
+```
+
+Then open `http://localhost:8080` in your browser. The backend serves static files and saves tasks to `tasks.json`.
+
+---
 
 ## 📖 Usage Guide
 
 ### Adding a Task
-1. Fill in the form fields:
-   - **Group Name**: Category for organizing tasks (e.g., "Work", "Personal")
-   - **Task Description**: What you need to do
-   - **Priority**: Choose Low, Medium, or High
-   - **Due Date**: Optional deadline (click calendar icon)
-   - **Timer**: Optional time in minutes (Pomodoro timer)
-2. Click **"+ Add Task"** button
-3. Task appears in the appropriate group
+1. Fill in the form at the top:
+   - **Group** — Category name (e.g. "Work", "Personal")
+   - **Task** — What needs to be done
+   - **Priority** — Low, Medium, or High
+   - **Due Date** — Optional deadline
+   - **Timer** — Optional countdown in minutes
+2. Click **+ Add Task**
 
 ### Managing Tasks
-- **Complete a Task**: Click the ✔ (checkmark) button
-- **Delete a Task**: Click the 🗑 (trash) button
-- **Use Timer**: Click "Start" to begin a task timer
-  - Click "Pause" to pause the timer
-  - Click "Resume" to continue where you left off
-  - Timer automatically completes when time reaches zero
+- **Complete** — Click the circle button on the left of a task
+- **Delete** — Click the trash icon on the right
+- **Timer** — Click Start → Pause → Resume as needed
 
-### Filtering & Sorting
-- **View Options**: Switch between Groups, Weekly, and Monthly views
-- **Sort By**: Organize by Priority (High → Low) or Due Date (Earliest First)
-- **Search**: Filter tasks by name or group in real-time
-- **Clear All**: Remove all tasks at once (confirmation required)
+### Views & Filters
+- Switch views from the **left sidebar** (Groups / Weekly / Monthly)
+- Use the **search bar** in the top right to filter in real time
+- Use the **Sort** dropdown to reorder by priority or date
 
 ### Visual Indicators
-- 🟢 **Green border** = Low priority
-- 🟠 **Orange border** = Medium priority
-- 🔴 **Red border** = High priority
-- 🔴 **Overdue tasks** = Red background with pulsing animation
-- ✔ **Completed tasks** = Faded appearance with strikethrough text
+- 🟢 **Green strip** = Low priority
+- 🟡 **Orange strip** = Medium priority
+- 🔴 **Red strip** = High priority
+- ⚠ **Red tint** = Overdue task
+
+---
 
 ## 📂 Project Structure
 
 ```
-to-do-list/
-├── index.html          # Main HTML structure & form
-├── style.css           # Complete styling with animations
-├── app.js              # Frontend logic & state management
+taskflow/
+├── index.html          # App layout — sidebar, form, task container
+├── style.css           # Dark theme, animations, responsive layout
+├── app.js              # Task logic, rendering, timers, storage
 ├── README.md           # This file
-└── run_backend.bat     # (Optional) Backend launcher script
+├── backend.cpp         # Optional C++ HTTP server (Windows)
+└── run_backend.bat     # Compile + run backend script
 ```
 
-### File Details
-
-| File | Purpose |
-|------|---------|
-| `index.html` | Application structure, form inputs, and task container |
-| `style.css` | Glassmorphism design, responsive layout, animations |
-| `app.js` | Task creation, rendering, state management, event handling |
-| `run_backend.bat` | (Optional) For C++ backend if needed in future |
+---
 
 ## 🎨 Customization
 
-### Change Color Scheme
-Edit the CSS variables in `style.css` (lines 1-31):
+### Change Accent Color
+Edit in `style.css`:
 ```css
 :root {
-    --primary-color: #6c5ce7;      /* Main color */
-    --danger-color: #ff7675;        /* Delete/danger color */
-    --success-color: #00b894;       /* Complete/success color */
-    /* ... more variables ... */
+  --accent: #f5c542;       /* Main accent (yellow-gold) */
+  --accent-dim: rgba(245, 197, 66, 0.12);
+  --accent-glow: rgba(245, 197, 66, 0.25);
 }
 ```
 
-### Adjust Animations
-Modify animation duration in `style.css`:
+### Change Background
 ```css
---transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+:root {
+  --bg:   #0e0f11;   /* Main background */
+  --bg-2: #15161a;   /* Sidebar & cards */
+  --bg-3: #1c1d22;   /* Input fields */
+}
 ```
 
-## 💡 Tips & Tricks
+### Change Fonts
+Replace the Google Fonts import in `index.html` and update `style.css`:
+```css
+:root {
+  --font: 'Your Font', sans-serif;
+  --mono: 'Your Mono Font', monospace;
+}
+```
 
-- 💾 **Your data is safe**: All tasks are saved automatically to your browser
-- 🔄 **Multiple windows**: Tasks sync across all open tabs
-- 🔍 **Quick search**: Use the search box to find tasks instantly
-- ⏰ **Timer alerts**: Set timers to stay focused on one task
-- 📱 **Mobile friendly**: Works great on smartphones and tablets
-- 🌙 **Works offline**: No internet connection required
+---
 
 ## 🐛 Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
-| Tasks not appearing | Refresh the page or clear browser cache |
-| Data lost after restart | Check if LocalStorage is enabled in browser |
-| Form not submitting | Ensure both Group Name and Task Description are filled |
-| Timer not working | Make sure JavaScript is enabled in your browser |
+|---|---|
+| Tasks not showing after reload | Check that `localStorage` is enabled in your browser |
+| Form won't submit | Both **Group** and **Task** fields are required |
+| Timer resets on reload | This is expected if the tab was closed while running — timer state is saved on pause |
+| Backend not starting | Make sure `g++` and Winsock (`ws2_32`) are available on your system |
+| Data lost after update | Old data migrates automatically from the `tasks` key to `taskflow_tasks` |
 
-## 🔮 Future Enhancements
+---
 
-- 🌙 Dark mode toggle
-- 📤 Export tasks to CSV/JSON
-- 📱 Progressive Web App (PWA)
-- ☁️ Cloud sync with optional backend
-- 🔔 Desktop notifications
-- 🎨 Customizable themes
-- 🏷️ Task tags and labels
-- 📊 Statistics dashboard
+## 🔮 Planned Enhancements
+
+- 🌙 Light mode toggle
+- 📤 Export tasks to JSON / CSV
+- 🔔 Browser notifications when timer ends
+- 🏷 Task tags and labels
+- 📊 Progress dashboard
 - ⌨️ Keyboard shortcuts
-- 🔐 Local encryption
+- 📱 Progressive Web App (PWA) support
+- ☁️ Optional cloud sync
+
+---
 
 ## 📝 License
 
-This project is open source and available under the MIT License.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
-- Improve documentation
+MIT License — free to use, modify, and distribute.
